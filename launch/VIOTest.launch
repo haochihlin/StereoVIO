@@ -1,0 +1,81 @@
+<launch>
+        <node pkg="stereo_vio" type="VIO_test" name="VIO_test" output="screen">
+
+            <!-- ********************************** -->
+            <!-- Visual Odometry Related Parameters -->
+            <!-- ********************************** -->
+            <!-- Disparity Computing parameters -->
+            <param name="Epipolar_range" value="1.0"/>
+            <param name="MaxDepth"       value="20"/>
+            <param name="MinDepth"       value="0.01"/>
+            <param name="disparity_matches" value="30"/>   <!-- The min No of disparity feature matching -->
+
+            <!-- Parameters setting for feature matching -->
+            <!-- Feature Detector -->
+            <param name="GFTT_maxCorners"   value="500"/>
+            <param name="GFTT_qualityLevel" value="0.01"/>
+            <param name="GFTT_minDistance"  value="9"/>
+            <param name="GFTT_blockSize"    value="9"/>
+            <!-- Feature Descriptor -->
+            <param name="ORB_scaleFactor"   value="1.2"/>
+            <param name="ORB_nlevels"       value="8"/>
+            <param name="ORB_edgeThreshold" value="31"/>
+            <param name="ORB_patchSize"     value="31"/>
+
+            <!-- Parameters for Tracking performance -->
+            <param name="Track_distDevScale"       value="0.15"/>  <!-- Scale factor to determine the std of norm of feature matching for tracking -->
+            <param name="track_max_norm"           value="3.0"/>  <!-- The max value for tracking norm (rotation*2pi + translation in m) -->
+            <param name="KF_update_norm"           value="0.25"/> <!-- For new KF: The value of norm which trigger new KF generating -->
+            <param name="KF_min_inlier"            value="30"/>   <!-- For new KF: The min No of PnP inliner -->
+            <param name="KF_min_goodMatches"       value="40"/>   <!-- For new KF: The min No of good features matching for tracking -->
+            <param name="track_min_goodMatches"    value="20"/>   <!-- For tracking: the min No of good feature matching -->
+            <param name="track_min_inlier"         value="15"/>   <!-- For tracking: the min No of PnP inlier -->
+            <param name="RANSAC_iterationsCount"   value="80"/>  <!-- For solvePnP: the min No of RANSAC iterations -->
+            <param name="RANSAC_reprojectionError" value="2"/>    <!-- For solvePnP: the max No of RANSAC reprojection error -->
+            <param name="RANSAC_minInliersFactor"  value="0.85"/>  <!-- For solvePnP: the scale factor to determine the min No of Inliers (*goodmatches) -->
+            <param name="looseTrackingRestart"     value="3"/>
+            <!-- Method index for solvePnP algorithm, 0 for iterate, 1 for P3P, 2 for EPNP -->
+            <param name="solvePnPmethod"           value="0"/>
+
+            <!-- VO ROS Topic Parameters -->
+            <param name="VO/TF_parent"  value="VO_map"/>
+            <param name="VO/TF_child"   value="base_link"/>
+
+            <!-- Parameters for camera caliberation files -->
+            <param name="cam_cali_path_L"  value="$(find stereo_vio)/Param/visensor_cam0.yml"/>
+            <param name="cam_cali_path_R"  value="$(find stereo_vio)/Param/visensor_cam1.yml"/>
+
+            <!-- CPU/OCL Parameters -->
+            <param name="CPUMultiThreadNo" value="2" /> <!-- No. of CPU thread usage -->
+
+            <!-- VO Debug Parameters -->
+            <param name="VO/DEBUG_MODE"  value="false"/>  <!-- Show debug info on terminal -->
+            <param name="VO/DRAW_DISP"   value="false"/>  <!-- Draw stereo disparity -->
+            <param name="VO/DRAW_TRAC"   value="false"/>  <!-- Draw features tracking -->
+            <param name="VO/SHOW_WINS"   value="false"/>  <!-- Show the openCV image windows -->
+            <param name="VO/SHOW_INFO"   value="false"/>  <!-- Show basic info on terminal -->
+
+            <!-- ************************************ -->
+            <!-- Error State Kalman Filter Parameters -->
+            <!-- ************************************ -->
+            <param name="accelerometer_noise_density" value="2.0000e-3"/> <!-- [ m / s^2 / sqrt(Hz) ]  ( accel "white noise" ) -->
+            <param name="accelerometer_random_walk"   value="3.0000e-3"/> <!-- [ m / s^3 / sqrt(Hz) ]  ( accel bias diffusion ) -->
+            <param name="gyroscope_noise_density"     value="1.6968e-04"/> <!-- [ rad / s / sqrt(Hz) ]  ( gyro "white noise" ) -->
+            <param name="gyroscope_random_walk"       value="1.9393e-05"/> <!-- [ rad / s^2 / sqrt(Hz) ] ( gyro bias diffusion ) -->
+            <param name="initial_process_covariance"  value="1e-8"/> <!-- Initial guess for P -->
+            <param name="stateBufferSizeInSec"        value="60"/> <!-- How old of state obj will be eliminated (in sec) -->
+            <param name="vo_fixedstd_q"               value="1e-3"/> <!-- noise std of VO rotation part (in rad) -->
+            <param name="vo_fixedstd_p"               value="1e-4"/> <!-- noise std of VO translation part (in m) -->
+            <param name="UsingFixedVOCovariance"      value="true"/> <!-- using fixed noise value for VO update -->
+
+            <!-- ESKF ROS Topic Parameters -->
+            <param name="ESKF/ImuSubTopic"  value="/imu0"/>
+            <param name="ESKF/TF_parent"   value="world"/>
+            <param name="ESKF/TF_child"   value="eskf_base"/>
+
+            <!-- ESKF Debug Parameters -->
+            <param name="ESKF/DEBUG_MODE"  value="false"/>  <!-- Show debug info on terminal -->
+            <param name="ESKF/SHOW_INFO"   value="true"/>  <!-- Show basic info on terminal -->
+
+    </node>
+</launch>

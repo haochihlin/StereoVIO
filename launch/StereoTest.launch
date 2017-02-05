@@ -1,0 +1,54 @@
+<launch>
+        <node pkg="stereo_vio" type="VO_test" name="VO_test" output="screen">
+	    <!-- Disparity Computing parameters -->	    
+	    <param name="Epipolar_range" value="1.0"/>
+            <param name="MaxDepth"       value="20"/>
+            <param name="MinDepth"       value="0.01"/>
+            <param name="disparity_matches" value="30"/>   <!-- The min No of disparity feature matching -->
+
+            <!-- Parameters setting for feature matching -->
+            <!-- Feature Detector -->
+            <param name="GFTT_maxCorners"   value="500"/>
+            <param name="GFTT_qualityLevel" value="0.005"/>
+            <param name="GFTT_minDistance"  value="9"/>
+            <param name="GFTT_blockSize"    value="9"/>
+            <!-- Feature Descriptor -->
+            <param name="ORB_scaleFactor"   value="1.2"/>
+            <param name="ORB_nlevels"       value="8"/>
+            <param name="ORB_edgeThreshold" value="31"/>
+            <param name="ORB_patchSize"     value="31"/>
+
+            <!-- Parameters for Tracking performance -->
+            <param name="Track_distDevScale"       value="0.15"/>  <!-- Scale factor to determine the std of norm of feature matching for tracking -->
+            <param name="track_max_norm"           value="3.0"/>  <!-- The max value for tracking norm (rotation*2pi + translation in m) -->
+            <param name="KF_update_norm"           value="0.25"/> <!-- For new KF: The value of norm which trigger new KF generating -->
+            <param name="KF_min_inlier"            value="30"/>   <!-- For new KF: The min No of PnP inliner -->
+            <param name="KF_min_goodMatches"       value="40"/>   <!-- For new KF: The min No of good features matching for tracking -->
+            <param name="track_min_goodMatches"    value="20"/>   <!-- For tracking: the min No of good feature matching -->
+            <param name="track_min_inlier"         value="15"/>   <!-- For tracking: the min No of PnP inlier -->
+            <param name="RANSAC_iterationsCount"   value="80"/>  <!-- For solvePnP: the min No of RANSAC iterations -->
+            <param name="RANSAC_reprojectionError" value="2.0"/>    <!-- For solvePnP: the max No of RANSAC reprojection error -->
+            <param name="RANSAC_minInliersFactor"  value="0.8"/>  <!-- For solvePnP: the scale factor to determine the min No of Inliers (*goodmatches) -->
+            <param name="looseTrackingRestart"     value="3"/>
+            <!-- Method index for solvePnP algorithm, 0 for iterate, 1 for P3P, 2 for EPNP -->
+            <param name="solvePnPmethod"           value="0"/>
+
+            <!-- ROS Topic Parameters -->
+            <param name="VO/TF_parent"  value="VO_map"/>
+            <param name="VO/TF_child"   value="base_link"/>
+
+            <!-- Parameters for camera caliberation files -->
+            <param name="cam_cali_path_L"  value="$(find stereo_vio)/Param/visensor_cam0.yml"/>
+            <param name="cam_cali_path_R"  value="$(find stereo_vio)/Param/visensor_cam1.yml"/>
+
+            <!-- CPU/OCL Parameters -->
+            <param name="CPUMultiThreadNo" value="1" /> <!-- No. of CPU thread usage -->
+
+            <!-- Debug Parameters -->
+            <param name="VO/DEBUG_MODE"  value="false"/> <!-- Show debug info on terminal -->
+            <param name="VO/DRAW_DISP"   value="true"/>  <!-- Draw stereo disparity -->
+            <param name="VO/DRAW_TRAC"   value="true"/>  <!-- Draw features tracking -->
+            <param name="VO/SHOW_WINS"   value="false"/> <!-- Show the openCV image windows -->
+            <param name="VO/SHOW_INFO"   value="true"/>  <!-- Show basic info on terminal -->
+        </node>
+</launch>
