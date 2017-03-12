@@ -7,7 +7,8 @@
 #include <sensor_msgs/Imu.h>
 #include <chrono> // [DEBUG] For tic-toc computing
 #include <thread>
-#include <queue>
+//#include <deque>
+#include <deque>
 
 // Eigen
 #include <Eigen/Dense>
@@ -28,11 +29,6 @@ class ESKF_Core
     ESKF_Core();
     ~ESKF_Core();
 
-    // For algorithn verification (by MSFEKF)
-    //EKF_State test_new;
-    //EKF_State test_old;
-
-    //void EKF_Prop(const ros::TimerEvent&);
     bool StartProcessing(Quaterniond &Cam2Imu_q, Vector3d &Cam2Imu_t, bool showInfo = false);
     bool MultiThreadUpdate(VOTRack &VoTrack);
 
@@ -40,7 +36,7 @@ class ESKF_Core
     ros::NodeHandle n;
     ros::Subscriber Imu_sub;
 
-    queue<VOTRack> MeasurementsQueue;
+    deque<VOTRack> MeasurementsDeque;
     ESKF_Container<ESKF_State> StateBuffer;
 
     ESKF_UTIL eskfUtil; // For useful constants and functions
@@ -48,10 +44,10 @@ class ESKF_Core
 
     thread update_thread;
 
-    void Initialize(ESKF_Container<ESKF_State> &StateBuffer, queue<VOTRack> &MeasurementsQueue, const double &initTimeStamp, ESKF_UTIL &eskfUtil, bool UsingPrevState = false);
+    void Initialize(ESKF_Container<ESKF_State> &StateBuffer, deque<VOTRack> &MeasurementsDeque, const double &initTimeStamp, ESKF_UTIL &eskfUtil, bool UsingPrevState = false);
     void ESKF_Prop(boost::shared_ptr<ESKF_State> &state_new, boost::shared_ptr<ESKF_State> &state_old, ESKF_UTIL &eskfUtil);
     void ESKF_Update(VOTRack &VoTrack);
-    void QueuingMeasHandler(queue<VOTRack> &MeasurementsQueue);
+    void DequeMeasHandler(deque<VOTRack> &MeasurementsDeque);
     void IMU_CB(const sensor_msgs::Imu ImuMsg);
     void StateTFPublish(boost::shared_ptr<ESKF_State> &state_new, ESKF_UTIL &eskfUtil);
 
@@ -71,7 +67,8 @@ ESKF_Core::~ESKF_Core()
   cout << "\nWait for the ESKF update thread finished ..." << endl;
   this->StateBuffer.Clear();
   this->update_thread.join();
-  this->MeasurementsQueue.empty();
+  while (!this->MeasurementsDeque.empty())
+    this->MeasurementsDeque.pop_back();
 }
 
 void ESKF_Core::StateTFPublish(boost::shared_ptr<ESKF_State> &state_new, ESKF_UTIL &eskfUtil)
@@ -111,7 +108,7 @@ bool ESKF_Core::StartProcessing(Quaterniond &Cam2Imu_q, Vector3d &Cam2Imu_t, boo
   return true;
 }
 
-void ESKF_Core::Initialize(ESKF_Container<ESKF_State> &StateBuffer, queue<VOTRack> &MeasurementsQueue, const double &initTimeStamp, ESKF_UTIL &eskfUtil, bool UsingPrevState)
+void ESKF_Core::Initialize(ESKF_Container<ESKF_State> &StateBuffer, deque<VOTRack> &MeasurementsDeque, const double &initTimeStamp, ESKF_UTIL &eskfUtil, bool UsingPrevState)
 {
   boost::shared_ptr<ESKF_State> state_init(new ESKF_State);
 
@@ -146,14 +143,9 @@ void ESKF_Core::Initialize(ESKF_Container<ESKF_State> &StateBuffer, queue<VOTRac
   eskfUtil.Gc.block<12,12>(3,0) = MatrixXd::Identity(12, 12); //Block size (p,q), starting at (i,j)
 
   StateBuffer.Insert(state_init);
-  MeasurementsQueue.empty();
+  while (!this->MeasurementsDeque.empty())
+    this->MeasurementsDeque.pop_back();
 
-  /* // For algorithn verification (by MSFEKF)
-  this->test_new = this->state_new;
-  this->test_old = this->state_old;
-  this->test_new.q << 0.0, 0.0, 0.0, 1.0;
-  this->test_old.q << 0.0, 0.0, 0.0, 1.0;
-  */
   cout.precision(17);
   cout << endl << "=== Initial State ====" << endl;
   cout << "Time: " << initTimeStamp << endl;
@@ -180,7 +172,7 @@ void ESKF_Core::IMU_CB(const sensor_msgs::Imu ImuMsg)
   // For the first loop initialization
   if(this->StateBuffer.Size() == 0 || this->eskfUtil.INIT_id == false)
   {
-    Initialize(this->StateBuffer, this->MeasurementsQueue, ImuMsg.header.stamp.toSec(), this->eskfUtil);
+    Initialize(this->StateBuffer, this->MeasurementsDeque, ImuMsg.header.stamp.toSec(), this->eskfUtil);
     return;
   }
 
@@ -204,7 +196,7 @@ void ESKF_Core::IMU_CB(const sensor_msgs::Imu ImuMsg)
   {
     cout << endl << "dt is negative ..." << endl;
     cout << "Reinitialize !" << endl;
-    Initialize(this->StateBuffer, this->MeasurementsQueue, state_new->timestamp, this->eskfUtil);
+    Initialize(this->StateBuffer, this->MeasurementsDeque, state_new->timestamp, this->eskfUtil);
   }
 
   if(dt >= this->eskfUtil.imuReadingTimeMax)
@@ -212,7 +204,7 @@ void ESKF_Core::IMU_CB(const sensor_msgs::Imu ImuMsg)
     cout << endl <<  "[Warning] The interval between readings is too big !!" << endl;
     cout << "dt is: " << dt << endl;
     cout << "Reinitialize !" << endl;
-    Initialize(this->StateBuffer, this->MeasurementsQueue, state_new->timestamp, this->eskfUtil);
+    Initialize(this->StateBuffer, this->MeasurementsDeque, state_new->timestamp, this->eskfUtil, true);
     return;
   }
 
@@ -238,8 +230,8 @@ void ESKF_Core::IMU_CB(const sensor_msgs::Imu ImuMsg)
   // Keep the size of StateContainer
   this->StateBuffer.ClearOlderThan(this->eskfUtil.stateBufferSizeInSec);
 
-  // Try to handle the measurements in the queue
-  QueuingMeasHandler(this->MeasurementsQueue);
+  // Try to handle the measurements in the deque (if invalid, the )
+  DequeMeasHandler(this->MeasurementsDeque);
 
   // --- Count the computation time ---
   auto t1_temp = std::chrono::high_resolution_clock::now(); // Set toc time
@@ -307,44 +299,6 @@ void ESKF_Core::ESKF_Prop(boost::shared_ptr<ESKF_State> &state_new, boost::share
 
   // for p
   state_new->p = state_old->p + (state_old->v + state_new->v)/2.0*dt;
-
-  /*  //## [DEBUG] Verified with MSFEKF algorithm ##
-   *   Matrix<double, 3, 1> dv;
-  const Vector3d ew = w_hat_new;
-  const Vector3d ewold = w_hat_old;
-  const Vector3d ea = a_hat_new;
-  const Vector3d eaold = a_hat_old;
-  const Matrix4d Omega = eskfUtil.OmegaMatJPL(ew);
-  const Matrix4d OmegaOld = eskfUtil.OmegaMatJPL(ewold);
-  Matrix4d OmegaMean = eskfUtil.OmegaMatJPL((ew + ewold) / 2);
-
-  // First order quaternion integration, this is kind of costly and may not add
-  // a lot to the quality of propagation...
-  div = 1;
-  Matrix4d MatExp;
-  MatExp.setIdentity();
-  OmegaMean *= 0.5 * dt;
-  for (int i = 1; i < 5; i++) {  // Can be made fourth order or less to save cycles.
-    div *= i;
-    MatExp = MatExp + OmegaMean / div;
-    OmegaMean *= OmegaMean;
-  }
-
-  // First oder quat integration matrix.
-  const Matrix4d quat_int = MatExp + 1.0 / 48.0 * (Omega * OmegaOld - OmegaOld * Omega) * dt * dt;
-
-  // First oder quaternion integration. ( q in the order x y z w )
-  this->test_new.q = quat_int * this->test_old.q;
-  eskfUtil.QuatNormal(this->test_new.q);
-
-  dv = ( eskfUtil.Quat2RotJPL(this->test_new.q) * ea + eskfUtil.Quat2RotJPL(this->test_old.q) * eaold) / 2;
-  this->test_new.v = this->test_old.v + (dv - eskfUtil.gravity) * dt;
-  this->test_new.p = this->test_old.p + ( (this->test_new.v + this->test_old.v ) / 2 * dt);
-  cout << endl << "=== MSFEKF ====" << endl;
-  cout << "p: " << endl << this->test_new.p.transpose() << endl;
-  cout << "v: " << endl << this->test_new.v.transpose() << endl;
-  cout << "q: " << endl << this->test_new.q.transpose() << endl;
-  */
 
   //## Step4: Propagate state covariance matrix
   // State: p, v, q, ba, bw
@@ -422,17 +376,19 @@ bool ESKF_Core::MultiThreadUpdate(VOTRack &myVoTrack)
   else
     return false;*/
 
-  ESKF_Update(myVoTrack);
+  //ESKF_Update(myVoTrack);
+  this->MeasurementsDeque.push_back(myVoTrack);
+  DequeMeasHandler(this->MeasurementsDeque);
   return true;
 }
 
-void ESKF_Core::QueuingMeasHandler(queue<VOTRack> &MeasurementsQueue)
+void ESKF_Core::DequeMeasHandler(deque<VOTRack> &MeasurementsDeque)
 {
-  if (MeasurementsQueue.empty())
+  if (MeasurementsDeque.empty())
     return;
 
-  VOTRack VoTrack = MeasurementsQueue.front();
-  MeasurementsQueue.pop();
+  VOTRack VoTrack = MeasurementsDeque.front();
+  MeasurementsDeque.pop_front();
   ESKF_Update(VoTrack);
 }
 
@@ -451,7 +407,7 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
   if(statebuffersize <= 2)
   {
     if(this->eskfUtil.SHOW_Info)
-      cout << "\n[Update] State buffer size is: " << statebuffersize << endl;
+      cout << "\n[Update] State buffer size is: " << statebuffersize  << ", drop this VO !" << endl;
     return;
   }
 
@@ -466,22 +422,27 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
       {
         cout << "the last state time: " << lastStateTime << endl;
         cout << "the last measure time: " << measTime_current << endl;
-        cout << "Push measurement into queue" << endl;
+        cout << "Push measurement into deque" << endl;
       }
     }
-    this->MeasurementsQueue.push(VoTrack);
+    this->MeasurementsDeque.push_front(VoTrack);
     return;
   }
 
   if(this->StateBuffer.GetFirst()->timestamp > measTime_keyframe)
   {
     if(this->eskfUtil.SHOW_Info)
-      cout << "\n[Update] Keyframe time is older than the first state: " << endl;
+      cout << "\n[Update] Keyframe time is older than the first state, drop this update !" << endl;
     return;
   }
 
   if(measTime_current-measTime_previous >= this->eskfUtil.updateTimeMax)
+  {
+    if(this->eskfUtil.SHOW_Info)
+      cout << "\n[Update] Keyframe time interval is too large, drop this update !" << endl;
     return;
+  }
+
   if(measTime_current-measTime_keyframe <= 0)
     return;
   if(measTime_current == 0 || measTime_keyframe == 0 || measTime_previous == 0)
@@ -492,7 +453,7 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
   const Quaterniond StateAtKeyframe_q = this->eskfUtil.Vec2Quad(StateAtKeyframe->q); // Since q in state is vector4d type
   const Quaterniond StateAtUpdate_q = this->eskfUtil.Vec2Quad(StateAtUpdate->q); // Since q in state is vector4d type
 
-  Quaterniond odomInIMU_q = this->eskfUtil.Cam2Imu_q*VoTrack.odom_q;
+  Quaterniond odomInIMU_q = this->eskfUtil.Cam2Imu_q.conjugate()*VoTrack.odom_q*this->eskfUtil.Cam2Imu_q;
   odomInIMU_q.normalize();
   Vector3d odomInIMU_t = this->eskfUtil.Cam2Imu_q._transformVector(VoTrack.odom_t) + this->eskfUtil.Cam2Imu_t;
 
@@ -516,10 +477,36 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
   // ##Step1: Calculate the residual
   const Vector3d residual_p = measUpdate_p - StateAtUpdate->p;
   Quaterniond residual_q = measUpdate_q * StateAtUpdate_q.conjugate();
-  residual_q.normalize();
+  //residual_q.normalize();
   const Vector3d residual_th = 2*residual_q.vec(); // q ~= [1, 0.5*theta]
   VectorXd residualVec(6);
   residualVec << residual_p, residual_th;
+
+  if(this->eskfUtil.DEBUG_Mode)
+  {
+     Quaterniond temp_q = this->eskfUtil.Cam2Imu_q*VoTrack.odom_q*this->eskfUtil.Cam2Imu_q.conjugate();
+     temp_q.normalize();
+     Quaterniond measUpdate_q_inv = StateAtKeyframe_q * temp_q;
+     measUpdate_q_inv.normalize();
+
+     cout << "VoTrack.odom_q:     " << VoTrack.odom_q.w() << ", " << VoTrack.odom_q.vec().transpose() << endl;
+     cout << "odomInIMU_q (inv):  " << temp_q.w() << ", " << temp_q.vec().transpose() << endl;
+     cout << "odomInIMU_q:        " << odomInIMU_q.w() << ", " << odomInIMU_q.vec().transpose() << endl;
+     cout << "Time At Update:     " << StateAtUpdate->timestamp << endl;
+     cout << "measUpdate_q(inv):  " << measUpdate_q_inv.w() << ", " << measUpdate_q_inv.vec().transpose() << endl;
+     cout << "measUpdate_q:       " << measUpdate_q.w() << ", " << measUpdate_q.vec().transpose() << endl;
+     cout << "StateAtUpdate_q:    " << StateAtUpdate_q.w() << ", " << StateAtUpdate_q.vec().transpose() << endl << endl;
+     cout << "Time At VOUpdate:   " << measTime_current << endl;
+     cout << "Time At VOKeyframe: " << measTime_keyframe << endl;
+     cout << "Time At Keyframe:   " << StateAtKeyframe->timestamp << endl;
+     cout << "StateAtKeyframe_q:  " << StateAtKeyframe_q.w() << ", " << StateAtKeyframe_q.vec().transpose() << endl;
+     cout << "odomInIMU_t:        " << odomInIMU_t.transpose() << endl;
+     cout << "measUpdate_p:       " << measUpdate_p.transpose() << endl;
+     cout << "StateAtUpdate_p:    " << StateAtUpdate->p.transpose() << endl;
+     cout << "residualVec :" << residualVec.transpose() << endl << endl;
+     cout << "norm of dq  :" << residual_th.norm() << endl;
+  }
+
 
   // ##Step2: Compute the Innovation, Kalman gain and Correction state
   const Matrix<double, 6, 6> S = this->eskfUtil.H * StateAtUpdate->P * this->eskfUtil.H.transpose() + R;
@@ -579,7 +566,8 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
   // Broadcasting TF
   StateTFPublish(it_next->second, this->eskfUtil);
 
-  if(this->eskfUtil.DEBUG_Mode)
+  if(false)
+  //if(this->eskfUtil.DEBUG_Mode)
   {
     boost::shared_ptr<ESKF_State> StateTest   = this->StateBuffer.GetLast();
     cout << "\n=== Measurement Update Result ===" << endl;
@@ -599,8 +587,6 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
     cout << "Inverse Hz: " <<  1.0/(1.e-9*std::chrono::duration_cast<std::chrono::nanoseconds>(t1_inv-t0_inv).count()) << endl;
     cout << "K:\n" << K << endl;
     cout << "x_update: " << x_update.transpose() << endl;
-    cout << "residualVec: " << residualVec.transpose() << endl << endl;
-
   }
 
   return;

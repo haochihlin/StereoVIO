@@ -42,7 +42,7 @@
             <param name="cam_cali_path_R"  value="$(find stereo_vio)/Param/visensor_cam1.yml"/>
 
             <!-- CPU/OCL Parameters -->
-            <param name="CPUMultiThreadNo" value="1" /> <!-- No. of CPU thread usage -->
+            <param name="CPUMultiThreadNo" value="2" /> <!-- No. of CPU thread usage -->
 
             <!-- Debug Parameters -->
             <param name="VO/DEBUG_MODE"  value="false"/> <!-- Show debug info on terminal -->

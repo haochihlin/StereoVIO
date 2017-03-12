@@ -34,6 +34,7 @@ class ESKF_UTIL
     const double imuReadingAccelMax = 50.0; // m/sec^2
     const double imuReadingGyroMax = 50.0; // rad/sec
     const double updateTimeMax = 0.5; // sec
+    const double updateErrorBound = 0.1;
 
     inline Matrix3d Skew(const Vector3d &vec);
     inline Matrix4d QuatMat_L(const Vector4d &q);

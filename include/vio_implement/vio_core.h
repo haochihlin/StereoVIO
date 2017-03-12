@@ -87,7 +87,6 @@ StereoVIO::StereoVIO() : it_(nh_), OriImg_L_sub_( it_, "/cam0/image_raw", 1 ), O
           cout << "[ERROR] Calibration files not found" << endl;
           return ;
       }
-    cout << endl << "--- Camera Intrinsics Calibration files found ! ---" << endl;
 
     // Passing the cam to imu extrinsics matrix to eskf core
     if( this->VoUtil.Cam2Imu_CVMat2Eigen(this->CamPara.Cam2Imu_L, cam2imu_q, cam2imu_t) )
@@ -121,7 +120,8 @@ void StereoVIO::callback(const sensor_msgs::ImageConstPtr& OriImg_L_msg,const se
   // -------------------------
   // --- Handle two images ---
   // -------------------------
-  ROS_INFO("\n----- New frame arrived ! -----");
+  if(this->VoUtil.DEBUG_MODE)
+    ROS_INFO("\n----- New frame arrived ! -----");
   double ImgMsgTime = (OriImg_R_msg->header.stamp.toSec() + OriImg_L_msg->header.stamp.toSec())/2.0;
   cv_bridge::CvImagePtr cv_ptr_L, cv_ptr_R;
   try
@@ -148,8 +148,8 @@ void StereoVIO::callback(const sensor_msgs::ImageConstPtr& OriImg_L_msg,const se
   // ------------------------
   if( VoCore.stereoVOProcess(this->voFrame, this->voTrack, this->VoUtil, this->CamPara, ImgMsgTime) )
   {
-    // --- TF Publish info ---
-    VoCore.VOGlobalTFPub(this->voTrack, this->VoUtil);
+    // --- VO based TF Publish ---
+    //VoCore.VOGlobalTFPub(this->voTrack, this->VoUtil);
     // --- Trigger the ESKF Core ---
     if(this->eskf_trig_flag ==  false && eskf_cam2imu_found == true)
     {

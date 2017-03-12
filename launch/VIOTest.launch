@@ -35,7 +35,7 @@
             <param name="RANSAC_minInliersFactor"  value="0.85"/>  <!-- For solvePnP: the scale factor to determine the min No of Inliers (*goodmatches) -->
             <param name="looseTrackingRestart"     value="3"/>
             <!-- Method index for solvePnP algorithm, 0 for iterate, 1 for P3P, 2 for EPNP -->
-            <param name="solvePnPmethod"           value="0"/>
+            <param name="solvePnPmethod"           value="2"/>
 
             <!-- VO ROS Topic Parameters -->
             <param name="VO/TF_parent"  value="VO_map"/>
@@ -74,7 +74,7 @@
             <param name="ESKF/TF_child"   value="eskf_base"/>
 
             <!-- ESKF Debug Parameters -->
-            <param name="ESKF/DEBUG_MODE"  value="false"/>  <!-- Show debug info on terminal -->
+            <param name="ESKF/DEBUG_MODE"  value="true"/>  <!-- Show debug info on terminal -->
             <param name="ESKF/SHOW_INFO"   value="true"/>  <!-- Show basic info on terminal -->
 
     </node>
