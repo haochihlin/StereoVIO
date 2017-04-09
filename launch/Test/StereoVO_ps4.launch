@@ -22,7 +22,7 @@
 
             <!-- Parameters for Tracking performance -->
             <param name="Track_distDevScale"       value="0.20"/>  <!-- Scale factor to determine the std of norm of feature matching for tracking -->
-            <param name="track_max_norm"           value="1.0"/>  <!-- The max value for tracking norm (rotation*2pi + translation in m) -->
+            <param name="track_max_norm"           value="0.5"/>  <!-- The max value for tracking norm (rotation*2pi + translation in m) -->
             <param name="track_min_goodMatches"    value="15"/>   <!-- For tracking: the min No of good feature matching -->
             <param name="track_min_inlier"         value="10"/>   <!-- For tracking: the min No of PnP inlier -->
             <param name="KF_update_norm"           value="0.25"/> <!-- For new KF: The value of norm which trigger new KF generating -->
@@ -31,7 +31,7 @@
             <param name="RANSAC_iterationsCount"   value="100"/>  <!-- For solvePnP: the min No of RANSAC iterations -->
             <param name="RANSAC_reprojectionError" value="2"/>    <!-- For solvePnP: the max No of RANSAC reprojection error -->
             <param name="RANSAC_minInliersFactor"  value="0.9"/>  <!-- For solvePnP: the scale factor to determine the min No of Inliers (*goodmatches) -->
-            <param name="looseTrackingRestart"     value="6"/>
+            <param name="looseTrackingRestart"     value="5"/>
             <!-- Method index for solvePnP algorithm, 0 for iterate, 1 for P3P, 2 for EPNP -->
             <param name="solvePnPmethod"           value="0"/>
 
@@ -49,9 +49,9 @@
 
             <!-- VO Debug Parameters -->
             <param name="VO/DEBUG_MODE"  value="false"/>  <!-- Show debug info on terminal -->
-            <param name="VO/DRAW_DISP"   value="false"/>  <!-- Draw stereo disparity -->
-            <param name="VO/DRAW_TRAC"   value="false"/>  <!-- Draw features tracking -->
-            <param name="VO/SHOW_WINS"   value="false"/>  <!-- Show the openCV image windows -->
+            <param name="VO/DRAW_DISP"   value="true"/>  <!-- Draw stereo disparity -->
+            <param name="VO/DRAW_TRAC"   value="true"/>  <!-- Draw features tracking -->
+            <param name="VO/SHOW_WINS"   value="true"/>  <!-- Show the openCV image windows -->
             <param name="VO/SHOW_INFO"   value="false"/>  <!-- Show basic info on terminal -->
 
 	    <!-- Remap -->
