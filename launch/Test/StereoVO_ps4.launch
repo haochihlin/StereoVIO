@@ -17,8 +17,8 @@
             <param name="ORB_nfeatures"     value="500"/>
             <param name="ORB_scaleFactor"   value="1.2"/>
             <param name="ORB_nlevels"       value="8"/>
-            <param name="ORB_edgeThreshold" value="25"/>
-            <param name="ORB_patchSize"     value="25"/>
+            <param name="ORB_edgeThreshold" value="27"/>
+            <param name="ORB_patchSize"     value="27"/>
 
             <!-- Parameters for Tracking performance -->
             <param name="Track_distDevScale"       value="0.20"/>  <!-- Scale factor to determine the std of norm of feature matching for tracking -->
@@ -49,9 +49,9 @@
 
             <!-- VO Debug Parameters -->
             <param name="VO/DEBUG_MODE"  value="false"/>  <!-- Show debug info on terminal -->
-            <param name="VO/DRAW_DISP"   value="true"/>  <!-- Draw stereo disparity -->
-            <param name="VO/DRAW_TRAC"   value="true"/>  <!-- Draw features tracking -->
-            <param name="VO/SHOW_WINS"   value="true"/>  <!-- Show the openCV image windows -->
+            <param name="VO/DRAW_DISP"   value="false"/>  <!-- Draw stereo disparity -->
+            <param name="VO/DRAW_TRAC"   value="false"/>  <!-- Draw features tracking -->
+            <param name="VO/SHOW_WINS"   value="false"/>  <!-- Show the openCV image windows -->
             <param name="VO/SHOW_INFO"   value="false"/>  <!-- Show basic info on terminal -->
 
 	    <!-- Remap -->

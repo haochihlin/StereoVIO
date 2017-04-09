@@ -139,6 +139,12 @@ bool VO_Core::stereoVOProcess(VOFrame &voFrame, VOTRack &voTrack, VO_Util &VoUti
   // --- BFMatcher for disparity matching ---
   vector<DMatch> dispMatches;
   BFMatcher dispMatcher(NORM_HAMMING, true);
+  if(currKF_L->ori_desc.type() != currKF_R->ori_desc.type() || currKF_L->ori_desc.cols != currKF_R->ori_desc.cols)
+  {
+    if(VoUtil.DEBUG_MODE)
+      cout << "[DEBUG] Size of disparity describer matrix are not the same !" << endl;
+    return false;
+  }
   dispMatcher.match(currKF_L->ori_desc, currKF_R->ori_desc, dispMatches); // queryDescriptors, trainDescriptors
   if(dispMatches.size() < VoUtil.disparity_matches)
   {
@@ -226,6 +232,13 @@ bool VO_Core::stereoVOProcess(VOFrame &voFrame, VOTRack &voTrack, VO_Util &VoUti
   // Matching with the previous frame
   vector<DMatch> matches;
   BFMatcher matcher(NORM_HAMMING, true);
+  if(VoUtil.prevKF_L.desc.type() != currKF_L->desc.type() || VoUtil.prevKF_L.desc.cols != currKF_L->desc.cols)
+  {
+    if(VoUtil.DEBUG_MODE)
+      cout << "[DEBUG] Size of tracking describer matrix are not the same !" << endl;
+    return false;
+  }
+
   matcher.match(VoUtil.prevKF_L.desc, currKF_L->desc, matches); // queryDescriptors, trainDescriptors
   if(VoUtil.DEBUG_MODE)
     cout << "[DEBUG] Tracking Ori matches: " << matches.size() << endl;
