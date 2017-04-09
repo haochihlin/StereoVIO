@@ -453,7 +453,7 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
   const Quaterniond StateAtKeyframe_q = this->eskfUtil.Vec2Quad(StateAtKeyframe->q); // Since q in state is vector4d type
   const Quaterniond StateAtUpdate_q = this->eskfUtil.Vec2Quad(StateAtUpdate->q); // Since q in state is vector4d type
 
-  Quaterniond odomInIMU_q = this->eskfUtil.Cam2Imu_q.conjugate()*VoTrack.odom_q*this->eskfUtil.Cam2Imu_q;
+  Quaterniond odomInIMU_q = this->eskfUtil.Cam2Imu_q*VoTrack.odom_q*this->eskfUtil.Cam2Imu_q.conjugate();
   odomInIMU_q.normalize();
   Vector3d odomInIMU_t = this->eskfUtil.Cam2Imu_q._transformVector(VoTrack.odom_t) + this->eskfUtil.Cam2Imu_t;
 
@@ -478,13 +478,13 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
   const Vector3d residual_p = measUpdate_p - StateAtUpdate->p;
   Quaterniond residual_q = measUpdate_q * StateAtUpdate_q.conjugate();
   //residual_q.normalize();
-  const Vector3d residual_th = 2*residual_q.vec(); // q ~= [1, 0.5*theta]
+  const Vector3d residual_th = 2*residual_q.vec()/residual_q.w(); // q ~= [1, 0.5*theta]
   VectorXd residualVec(6);
   residualVec << residual_p, residual_th;
 
   if(this->eskfUtil.DEBUG_Mode)
   {
-     Quaterniond temp_q = this->eskfUtil.Cam2Imu_q*VoTrack.odom_q*this->eskfUtil.Cam2Imu_q.conjugate();
+     Quaterniond temp_q = this->eskfUtil.Cam2Imu_q.conjugate()*VoTrack.odom_q*this->eskfUtil.Cam2Imu_q;
      temp_q.normalize();
      Quaterniond measUpdate_q_inv = StateAtKeyframe_q * temp_q;
      measUpdate_q_inv.normalize();
@@ -493,9 +493,11 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
      cout << "odomInIMU_q (inv):  " << temp_q.w() << ", " << temp_q.vec().transpose() << endl;
      cout << "odomInIMU_q:        " << odomInIMU_q.w() << ", " << odomInIMU_q.vec().transpose() << endl;
      cout << "Time At Update:     " << StateAtUpdate->timestamp << endl;
+
      cout << "measUpdate_q(inv):  " << measUpdate_q_inv.w() << ", " << measUpdate_q_inv.vec().transpose() << endl;
      cout << "measUpdate_q:       " << measUpdate_q.w() << ", " << measUpdate_q.vec().transpose() << endl;
      cout << "StateAtUpdate_q:    " << StateAtUpdate_q.w() << ", " << StateAtUpdate_q.vec().transpose() << endl << endl;
+
      cout << "Time At VOUpdate:   " << measTime_current << endl;
      cout << "Time At VOKeyframe: " << measTime_keyframe << endl;
      cout << "Time At Keyframe:   " << StateAtKeyframe->timestamp << endl;
@@ -564,7 +566,7 @@ void ESKF_Core::ESKF_Update(VOTRack &VoTrack)
   auto t1 = std::chrono::high_resolution_clock::now(); // Set toc time
 
   // Broadcasting TF
-  StateTFPublish(it_next->second, this->eskfUtil);
+  StateTFPublish(it_curr->second, this->eskfUtil);
 
   if(false)
   //if(this->eskfUtil.DEBUG_Mode)

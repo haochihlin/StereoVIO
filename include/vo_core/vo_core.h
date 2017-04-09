@@ -123,8 +123,16 @@ bool VO_Core::stereoVOProcess(VOFrame &voFrame, VOTRack &voTrack, VO_Util &VoUti
   auto t0 = std::chrono::high_resolution_clock::now();
 
   // --- Feature detect and compute ---
-  VoUtil.Ptr_gftt->detect(voFrame.curr_grey_L, currKF_L->ori_kp);
-  VoUtil.Ptr_gftt->detect(voFrame.curr_grey_R, currKF_R->ori_kp);
+  if(VoUtil.GFTT_used)
+  {
+    VoUtil.Ptr_gftt->detect(voFrame.curr_grey_L, currKF_L->ori_kp);
+    VoUtil.Ptr_gftt->detect(voFrame.curr_grey_R, currKF_R->ori_kp);
+  }
+  else
+  {
+    VoUtil.Ptr_orb->detect(voFrame.curr_grey_L, currKF_L->ori_kp);
+    VoUtil.Ptr_orb->detect(voFrame.curr_grey_R, currKF_R->ori_kp);
+  }
   VoUtil.Ptr_orb->compute(voFrame.curr_grey_L, currKF_L->ori_kp, currKF_L->ori_desc);
   VoUtil.Ptr_orb->compute(voFrame.curr_grey_R, currKF_R->ori_kp, currKF_R->ori_desc);
 
@@ -205,6 +213,7 @@ bool VO_Core::stereoVOProcess(VOFrame &voFrame, VOTRack &voTrack, VO_Util &VoUti
       }
       else
         cout << endl << "=== Initial loop down ! ===" << endl << endl;
+
       VoUtil.INIT_loop_down = true;
       VoUtil.looseTrackingCount = 0;
       return false;
@@ -291,23 +300,9 @@ bool VO_Core::stereoVOProcess(VOFrame &voFrame, VOTRack &voTrack, VO_Util &VoUti
       cout << "Norm of Transform is too large !!" << endl;
       delete currKF_L;
       delete currKF_R;
-      VoUtil.looseTrackingCount++;
+      //VoUtil.looseTrackingCount++;
       return false; // // finish this call-back func
   }
-
-
-  //## Second solvePnP
-  /*
-  // Create new kp_3 and kp_2 vector
-  vector<Point3f> track_kp_3f_new;  // Tracking matched 3d keypoints
-  vector<Point2f> track_kp_2f_new;  // Tracking matched 2d keypoints
-  for(int i=0; i<inliers.rows; i++)
-  {
-     track_kp_2f_new.push_back(currKF_L->track_kp_2f[inliers.ptr<int>(i)[0]]);
-     track_kp_3f_new.push_back(VoUtil.prevKF_L.track_kp_3f[inliers.ptr<int>(i)[0]]);
-  }
-  solvePnP(track_kp_3f_new, track_kp_2f_new, CamPara.projMatrix, Mat(), Rodrigues_R, temp_T, true);
-  */
 
 
   // Convert to Eigen
@@ -373,7 +368,7 @@ bool VO_Core::stereoVOProcess(VOFrame &voFrame, VOTRack &voTrack, VO_Util &VoUti
   // =======================
   // --- Update KeyFrame ---
   // =======================
-  if(tracking_norm >= VoUtil.KF_update_norm || inliers.rows <= VoUtil.KF_min_inlier || goodMatches.size() <= VoUtil.KF_min_goodMatches)
+  if(tracking_norm >= VoUtil.KF_update_norm && inliers.rows >= VoUtil.KF_min_inlier && goodMatches.size() >= VoUtil.KF_min_goodMatches)
   {
       //VoUtil.KeyFrame_L.push_back(*currKF_L);
       VoUtil.prevKF_L = *currKF_L; // Store current KeyFrame object into "prevKF_L" object
@@ -389,8 +384,8 @@ bool VO_Core::stereoVOProcess(VOFrame &voFrame, VOTRack &voTrack, VO_Util &VoUti
       voFrame.prev_grey_R = voFrame.curr_grey_R.clone(); // Store current image into "prev_grey_R" matrix
       voFrame.prev_bgr_L = voFrame.curr_bgr_L.clone();
       voFrame.prev_bgr_R = voFrame.curr_bgr_R.clone();
-      if(VoUtil.SHOW_INFO)
-        cout << "Keyframe Update !!";
+      //if(VoUtil.SHOW_INFO)
+        cout << "Keyframe Update !!" << endl;
   }
 
   delete currKF_L;

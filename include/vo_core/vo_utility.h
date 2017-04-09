@@ -39,8 +39,10 @@ class VO_Util
     double GFTT_qualityLevel = 0.01;
     double GFTT_minDistance = 9;
     int GFTT_blockSize = 9;
+    bool GFTT_used = false;
 
     float ORB_scaleFactor = 1.2f;
+    int ORB_nfeatures = 1000;
     int ORB_nlevels = 8;
     int ORB_edgeThreshold = 31;
     int ORB_patchSize  = 31;
@@ -94,7 +96,7 @@ VO_Util::VO_Util()
 {
   // Initialize the feature obj
   Ptr_gftt = cv::Ptr<GFTTDetector>(new GFTTDetector(GFTT_maxCorners, GFTT_qualityLevel, GFTT_minDistance, GFTT_blockSize));
-  Ptr_orb = cv::Ptr<ORB>(new ORB(200, ORB_scaleFactor, ORB_nlevels, ORB_edgeThreshold, 0, 2, ORB::HARRIS_SCORE, ORB_patchSize));
+  Ptr_orb = cv::Ptr<ORB>(new ORB(ORB_nfeatures, ORB_scaleFactor, ORB_nlevels, ORB_edgeThreshold, 0, 2, ORB::HARRIS_SCORE, ORB_patchSize));
 
   // ---------------------
   // ROS Parameter handler
@@ -110,8 +112,10 @@ VO_Util::VO_Util()
   nh_.param("GFTT_qualityLevel",  GFTT_qualityLevel, GFTT_qualityLevel );
   nh_.param("GFTT_minDistance",   GFTT_minDistance,  GFTT_minDistance );
   nh_.param("GFTT_blockSize",     GFTT_blockSize,    GFTT_blockSize );
+  nh_.param("GFTT_used",          GFTT_used,         GFTT_used );
 
   nh_.param("ORB_scaleFactor",   ORB_scaleFactor,    ORB_scaleFactor );
+  nh_.param("ORB_nfeatures",     ORB_nfeatures,      ORB_nfeatures );
   nh_.param("ORB_nlevels",       ORB_nlevels,        ORB_nlevels );
   nh_.param("ORB_edgeThreshold", ORB_edgeThreshold,  ORB_edgeThreshold );
   nh_.param("ORB_patchSize",     ORB_patchSize,      ORB_patchSize );
